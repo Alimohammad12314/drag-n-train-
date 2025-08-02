@@ -1,337 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Drag n' Train</title>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Drag n' Train</title>
 
-    <link
-      rel="stylesheet"
-      href="https://pyscript.net/releases/2024.1.1/core.css"
-    />
-    <script
-      type="module"
-      src="https://pyscript.net/releases/2024.1.1/core.js"
-    ></script>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
-      rel="stylesheet"
-    />
+  <link rel="stylesheet" href="https://pyscript.net/releases/2024.1.1/core.css">
+  <script type="module" src="https://pyscript.net/releases/2024.1.1/core.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
-    <py-config> packages = ["pandas"] </py-config>
+  <py-config>
+    packages = ["pandas"]
+  </py-config>
 
-    <style>
-      :root {
-        --primary: #3b82f6;
-        --primary-dark: #2563eb;
-        --surface: #ffffff;
-        --bg: #f9fafb;
-        --border: #e5e7eb;
-        --text: #1f2937;
-        --muted: #475569;
-      }
-      body {
-        margin: 0;
-        padding: 0;
-        font-family: "Inter", sans-serif;
-        background: var(--bg);
-        color: var(--text);
-      }
-      .container {
-        max-width: 960px;
-        margin: 2rem auto;
-        padding: 2rem;
-        background: var(--surface);
-        border-radius: 12px;
-        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.05);
-      }
-      h1 {
-        text-align: center;
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin-bottom: 2rem;
-      }
-      h2 {
-        border-bottom: 1px solid var(--border);
-        padding-bottom: 0.5rem;
-        margin-top: 2rem;
-      }
-      label {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        margin: 1rem 0 0.5rem;
-        font-weight: 600;
-      }
-      select,
-      button,
-      input[type="text"],
-      textarea {
-        padding: 0.75rem;
-        border-radius: 8px;
-        border: 1px solid var(--border);
-        width: 100%;
-        font-size: 1rem;
-        background: #f1f5f9;
-        box-sizing: border-box;
-      }
-      textarea {
-        resize: vertical;
-        min-height: 60px;
-      }
-      button {
-        background-color: var(--primary);
-        color: white;
-        font-weight: 600;
-        border: none;
-        margin-top: 1.5rem;
-        cursor: pointer;
-      }
-      button:hover:not(:disabled) {
-        background-color: var(--primary-dark);
-      }
-      button:disabled {
-        background-color: #cbd5e1;
-        cursor: not-allowed;
-      }
-      .drop-zone {
-        border: 2px dashed var(--border);
-        border-radius: 12px;
-        padding: 2rem;
-        text-align: center;
-        color: var(--muted);
-        background: #f8fafc;
-        cursor: pointer;
-        transition: 0.2s;
-      }
-      .drop-zone:hover {
-        background: #e0f2fe;
-        border-color: var(--primary);
-      }
-      .drop-zone__input {
-        display: none;
-      }
-      .results-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-        gap: 1.5rem;
-        margin-top: 2rem;
-      }
-      .result-card {
-        background: #f8fafc;
-        padding: 1rem;
-        border-radius: 8px;
-        border: 1px solid var(--border);
-      }
-      .result-card h3 {
-        margin-top: 0;
-        color: var(--primary-dark);
-      }
-      .result-card table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 0.5rem;
-      }
-      .result-card th,
-      .result-card td {
-        text-align: left;
-        padding: 0.5rem;
-        border-bottom: 1px solid var(--border);
-      }
-      /* --- CSS FIX: Make the selector more specific --- */
-      .metrics-header-cell {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .result-card tr:last-child td,
-      .result-card tr:last-child th {
-        border-bottom: none;
-      }
-      .result-card img {
-        max-width: 100%;
-        border-radius: 6px;
-        margin-top: 10px;
-      }
-      #status {
-        text-align: center;
-        font-size: 1.2rem;
-        font-weight: 600;
-        margin-top: 2rem;
-      }
-      .help-icon {
-        font-size: 0.8em;
-        cursor: pointer;
-        color: var(--muted);
-        border: 1px solid var(--muted);
-        border-radius: 50%;
-        width: 16px;
-        height: 16px;
-        display: inline-flex;
-        justify-content: center;
-        align-items: center;
-        flex-shrink: 0;
-      }
-      .modal {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
-      }
-      .modal-content {
-        background: var(--surface);
-        padding: 2rem;
-        border-radius: 12px;
-        max-width: 500px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-      }
-      .modal h2 {
-        margin-top: 0;
-      }
-      .ai-summary,
-      .ai-suggestion {
-        font-style: italic;
-        color: var(--muted);
-      }
-      .faq-grid {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 1rem;
-      }
-      .faq-item {
-        cursor: pointer;
-        background: #f1f5f9;
-        padding: 8px 12px;
-        border-radius: 20px;
-        font-size: 0.9em;
-        transition: 0.2s;
-      }
-      .faq-item:hover {
-        background-color: #e0f2fe;
-      }
-      .button-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-      }
-      .knowledge-base-search {
-        display: flex;
-        gap: 10px;
-        margin-top: 1rem;
-      }
-    </style>
-  </head>
+  <style>
+    :root {
+      --primary: #3b82f6; --primary-dark: #2563eb; --surface: #ffffff;
+      --bg: #f9fafb; --border: #e5e7eb; --text: #1f2937; --muted: #475569;
+    }
+    body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
+    .container { max-width: 960px; margin: 2rem auto; padding: 2rem; background: var(--surface); border-radius: 12px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.05); }
+    h1 { text-align: center; font-size: 2.5rem; font-weight: 700; margin-bottom: 2rem; }
+    h2 { border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-top: 2rem; }
+    label { display: flex; align-items: center; gap: 6px; margin: 1rem 0 0.5rem; font-weight: 600; }
+    select, button, input[type="text"], textarea { padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); width: 100%; font-size: 1rem; background: #f1f5f9; box-sizing: border-box; }
+    textarea { resize: vertical; min-height: 60px; }
+    button { background-color: var(--primary); color: white; font-weight: 600; border: none; margin-top: 1.5rem; cursor: pointer; }
+    button:hover:not(:disabled) { background-color: var(--primary-dark); }
+    button:disabled { background-color: #cbd5e1; cursor: not-allowed; }
+    .drop-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 2rem; text-align: center; color: var(--muted); background: #f8fafc; cursor: pointer; transition: 0.2s; }
+    .drop-zone:hover { background: #e0f2fe; border-color: var(--primary); }
+    .drop-zone__input { display: none; }
+    .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+    .result-card { background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid var(--border); }
+    .result-card h3 { margin-top: 0; color: var(--primary-dark); }
+    .result-card table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+    .result-card th, .result-card td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--border); }
+    .metrics-header-cell { display: flex; align-items: center; gap: 6px; }
+    .result-card tr:last-child td, .result-card tr:last-child th { border-bottom: none; }
+    .result-card img { max-width: 100%; border-radius: 6px; margin-top: 10px; }
+    #status { text-align: center; font-size: 1.2rem; font-weight: 600; margin-top: 2rem; }
+    .help-icon { font-size: 0.8em; cursor: pointer; color: var(--muted); border: 1px solid var(--muted); border-radius: 50%; width: 16px; height: 16px; display: inline-flex; justify-content: center; align-items: center; flex-shrink: 0;}
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background: var(--surface); padding: 2rem; border-radius: 12px; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+    .modal h2 { margin-top: 0; }
+    .ai-summary, .ai-suggestion { font-style: italic; color: var(--muted); }
+    .faq-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 1rem; }
+    .faq-item { cursor: pointer; background: #f1f5f9; padding: 8px 12px; border-radius: 20px; font-size: 0.9em; transition: 0.2s; }
+    .faq-item:hover { background-color: #e0f2fe; }
+    .button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .knowledge-base-search { display: flex; gap: 10px; margin-top: 1rem; }
+    /* --- NEW: Style for the generated code block --- */
+    .code-block { white-space: pre-wrap; word-wrap: break-word; background-color: #1f2937; color: #f9fafb; padding: 1rem; border-radius: 8px; font-family: monospace; }
+  </style>
+</head>
 
-  <body>
-    <div class="container">
-      <h1>Drag n' Train</h1>
-      <div
-        id="ai-suggestion-card"
-        class="result-card ai-suggestion"
-        style="display: none"
-      ></div>
-      <div
-        id="data-profile-card"
-        class="result-card"
-        style="display: none; max-height: 400px; overflow-y: auto"
-      ></div>
-      <label>1. Upload CSV File</label>
-      <div class="drop-zone" id="drop-zone">
-        <span class="drop-zone__prompt"
-          >Drag & Drop CSV here or click to browse</span
-        ><input
-          type="file"
-          id="file-upload-input"
-          class="drop-zone__input"
-          accept=".csv"
-        />
-      </div>
-      <div id="objective-section" style="display: none; margin-top: 1rem">
-        <label for="user-objective"
-          >What is your main objective with this data?</label
-        >
-        <textarea
-          id="user-objective"
-          placeholder="e.g., 'I want to predict the price' or 'find out which customers might leave'"
-        ></textarea>
-      </div>
-      <div class="button-grid" id="action-buttons" style="display: none">
-        <button
-          id="profile-button"
-          style="margin-top: 1rem; background-color: #57534e"
-        >
-          Profile Dataset
-        </button>
-        <button
-          id="suggest-button"
-          style="margin-top: 1rem; background-color: #16a34a"
-        >
-          Suggest Model
-        </button>
-      </div>
-      <div id="controls-section" style="display: none">
-        <label
-          >2. Choose Problem Type
-          <span id="help-problem-type" class="help-icon">?</span></label
-        >
-        <select id="problem-type">
-          <option disabled selected value="">-- Select --</option>
-          <option value="regression">Regression</option>
-          <option value="classification">Classification</option>
-        </select>
-        <label
-          >3. Choose Target Column
-          <span id="help-target-column" class="help-icon">?</span></label
-        >
-        <select id="target-column" disabled>
-          <option>Upload CSV first</option>
-        </select>
+<body>
+  <div class="container">
+    <h1>Drag n' Train</h1>
+    <div id="ai-suggestion-card" class="result-card ai-suggestion" style="display:none;"></div>
+    <div id="data-profile-card" class="result-card" style="display:none; max-height: 400px; overflow-y: auto;"></div>
+    <label>1. Upload CSV File</label>
+    <div class="drop-zone" id="drop-zone"><span class="drop-zone__prompt">Drag & Drop CSV here or click to browse</span><input type="file" id="file-upload-input" class="drop-zone__input" accept=".csv"></div>
+    <div id="objective-section" style="display:none; margin-top: 1rem;">
+      <label for="user-objective">What is your main objective with this data?</label>
+      <textarea id="user-objective" placeholder="e.g., 'I want to predict the price' or 'find out which customers might leave'"></textarea>
+    </div>
+    <div class="button-grid" id="action-buttons" style="display:none;">
+      <button id="profile-button" style="margin-top: 1rem; background-color: #57534e;">Profile Dataset</button>
+      <button id="suggest-button" style="margin-top: 1rem; background-color: #16a34a;">Suggest Model</button>
+    </div>
+    <div id="controls-section" style="display:none;">
+        <label>2. Choose Problem Type <span id="help-problem-type" class="help-icon">?</span></label>
+        <select id="problem-type"><option disabled selected value="">-- Select --</option><option value="regression">Regression</option><option value="classification">Classification</option></select>
+        <label>3. Choose Target Column <span id="help-target-column" class="help-icon">?</span></label>
+        <select id="target-column" disabled><option>Upload CSV first</option></select>
         <label>4. Choose Model</label>
-        <select id="model-name" disabled>
-          <option>Choose problem type first</option>
-        </select>
+        <select id="model-name" disabled><option>Choose problem type first</option></select>
         <button id="train-button" disabled>Train Model</button>
-      </div>
-      <div id="results">
-        <p id="status"></p>
-        <div class="results-grid">
-          <div class="results-column" id="results-col-1"></div>
-          <div class="results-column" id="results-col-2"></div>
-        </div>
-        <div
-          id="comparison-section"
-          class="result-card"
-          style="display: none; margin-top: 1.5rem"
-        ></div>
-      </div>
-      <div id="knowledge-base-section">
-        <h2>ML Knowledge Base</h2>
-        <div class="knowledge-base-search">
-          <input
-            type="text"
-            id="kb-search-input"
-            placeholder="Enter a term (e.g., Overfitting)"
-          />
-          <button id="kb-search-button" style="margin-top: 0">Explain</button>
-        </div>
-        <div class="faq-grid" id="faq-grid"></div>
-      </div>
     </div>
-
-    <div id="ai-modal" class="modal">
-      <div class="modal-content">
-        <h2 id="modal-title">Explanation</h2>
-        <p id="modal-body">Loading...</p>
+    <div id="results">
+      <p id="status"></p>
+      <div class="results-grid">
+        <div class="results-column" id="results-col-1"></div>
+        <div class="results-column" id="results-col-2"></div>
       </div>
+      <div id="comparison-section" class="result-card" style="display:none; margin-top: 1.5rem;"></div>
     </div>
+    <div id="knowledge-base-section">
+      <h2>ML Knowledge Base</h2>
+      <div class="knowledge-base-search">
+        <input type="text" id="kb-search-input" placeholder="Enter a term (e.g., Overfitting)">
+        <button id="kb-search-button" style="margin-top: 0;">Explain</button>
+      </div>
+      <div class="faq-grid" id="faq-grid"></div>
+    </div>
+  </div>
 
-    <py-script src="./frontend.py"></py-script>
-  </body>
+  <div id="ai-modal" class="modal"><div class="modal-content"><h2 id="modal-title">Explanation</h2><p id="modal-body">Loading...</p></div></div>
+
+  <!-- All logic is now in frontend.py -->
+  <py-script src="./frontend.py"></py-script>
+
+</body>
 </html>
