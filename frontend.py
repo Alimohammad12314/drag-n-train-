@@ -1,7 +1,8 @@
 import asyncio
 import json
 from pyodide.http import pyfetch
-from js import document, alert, console, event
+# --- NEW: Import JS library for file handling ---
+from js import document, alert, console, event, Blob, URL
 from pyodide.ffi import create_proxy
 from pyscript import when
 
@@ -9,7 +10,7 @@ from pyscript import when
 uploaded_data = None
 column_names = []
 comparison_results = []
-last_trained_model_info = {} 
+latest_training_data = None
 BACKEND_URL = "http://localhost:8000"
 FAQ_TERMS = ["Accuracy Score", "R2 Score", "Confusion Matrix", "Feature Importance", "Random Forest", "XGBoost"]
 
@@ -50,16 +51,18 @@ def render_comparison_table():
 
 # --- Core Application Logic ---
 async def handle_file_upload(file):
-    global uploaded_data, comparison_results, column_names
+    global uploaded_data, comparison_results, column_names, latest_training_data
     import pandas as pd
     
     comparison_results = []
+    latest_training_data = None
     document.getElementById("comparison-section").style.display = 'none'
     document.getElementById("results-col-1").innerHTML = ""
     document.getElementById("results-col-2").innerHTML = ""
     document.getElementById("status").innerText = ""
     document.getElementById("ai-suggestion-card").style.display = 'none'
     document.getElementById("data-profile-card").style.display = 'none'
+    document.getElementById("download-report-button").style.display = 'none'
     
     try:
         text = await file.text()
@@ -101,10 +104,11 @@ async def on_problem_change(event):
         check_train_button_state()
 
 async def on_train(event):
-    global last_trained_model_info, comparison_results
+    global comparison_results, latest_training_data
     btn = document.getElementById("train-button"); btn.disabled = True
     status = document.getElementById("status"); col1 = document.getElementById("results-col-1"); col2 = document.getElementById("results-col-2")
     col1.innerHTML = ""; col2.innerHTML = ""; status.innerText = "Training model..."
+    document.getElementById("download-report-button").style.display = 'none'
     
     try:
         model_name = document.getElementById("model-name").value
@@ -114,9 +118,7 @@ async def on_train(event):
         if not res.ok:
             alert(f"Server Error: {str(data.get('detail'))}"); return
 
-        info_card = document.createElement("div"); info_card.className = "result-card"
-        info_card.innerHTML = f"<h3>Model: {data['model_name']}</h3><p><strong>Status:</strong> {data['status']}</p>"
-        col1.appendChild(info_card)
+        info_card = document.createElement("div"); info_card.className = "result-card"; info_card.innerHTML = f"<h3>Model: {data['model_name']}</h3><p><strong>Status:</strong> {data['status']}</p>"; col1.appendChild(info_card)
         
         metrics_card = document.createElement("div"); metrics_card.className = "result-card"
         metrics_table = document.createElement("table")
@@ -143,28 +145,53 @@ async def on_train(event):
                 card = document.createElement("div"); card.className = "result-card"; card.innerHTML = f"<h3>{name.replace('_',' ').title()}</h3>"
                 img = document.createElement("img"); img.src = f"data:image/png;base64,{base64str}"; card.appendChild(img); col2.appendChild(card)
         
-        # --- NEW: Display Generated Code ---
         if data.get("generated_code"):
-            code_card = document.createElement("div"); code_card.className = "result-card"
-            code_card.innerHTML = "<h3>Generated Python Code</h3>"
-            code_block = document.createElement("pre"); code_block.className = "code-block"
-            code_content = document.createElement("code"); code_content.innerText = data["generated_code"]
-            code_block.appendChild(code_content)
-            code_card.appendChild(code_block)
-            col2.appendChild(code_card) # Add to the second column
-
-        status.innerText = "✅ Model trained successfully! Choose another model to compare."
+            code_card = document.createElement("div"); code_card.className = "result-card"; code_card.innerHTML = "<h3>Generated Python Code</h3>"
+            code_block = document.createElement("pre"); code_block.className = "code-block"; code_content = document.createElement("code"); code_content.innerText = data["generated_code"]
+            code_block.appendChild(code_content); code_card.appendChild(code_block); col2.appendChild(code_card)
         
+        latest_training_data = { "model_name": data['model_name'], "metrics": data['metrics'], "summary": summary_data['summary'], "visualizations": data['visualizations'] }
+        document.getElementById("download-report-button").style.display = 'block'
+        
+        status.innerText = "✅ Model trained successfully! Choose another model to compare."
         comparison_results = [r for r in comparison_results if r['model_name'] != data['model_name']]
-        comparison_results.append(data)
-        render_comparison_table()
+        comparison_results.append(data); render_comparison_table()
 
     except Exception as e:
-        status.innerText = "❌ Error during training"
-        alert(f"An unexpected error occurred during training: {str(e)}")
+        status.innerText = "❌ Error during training"; alert(f"An unexpected error occurred during training: {str(e)}")
     finally:
         btn.disabled = False
 
+# --- THE FIX IS IN THIS FUNCTION ---
+async def on_download_report_click(event):
+    if not latest_training_data:
+        alert("Please train a model first before generating a report.")
+        return
+    
+    btn = event.target; btn.disabled = True; btn.innerText = "Generating PDF..."
+    try:
+        res = await pyfetch(url=f"{BACKEND_URL}/generate_report", method="POST", headers={"Content-Type": "application/json"}, body=json.dumps(latest_training_data))
+        if res.ok:
+            # Get the underlying Javascript Response object
+            js_res = res.js_response
+            # Get the data as a JavaScript ArrayBuffer
+            array_buffer = await js_res.arrayBuffer()
+            # Create a Blob from the ArrayBuffer
+            pdf_blob = Blob.new([array_buffer], {"type": "application/pdf"})
+            
+            # Create a temporary URL for the Blob and trigger download
+            url = URL.createObjectURL(pdf_blob)
+            hidden_link = document.getElementById("download-link"); hidden_link.href = url
+            hidden_link.download = "drag_n_train_report.pdf"; hidden_link.click(); URL.revokeObjectURL(url)
+        else:
+            data = await res.json()
+            alert(f"Failed to generate report: {data.get('detail')}")
+
+    except Exception as e:
+        alert(f"An error occurred while generating the report: {e}")
+    finally:
+        btn.disabled = False; btn.innerText = "Download Report"
+        
 async def on_help_click(term):
     modal = document.getElementById("ai-modal"); document.getElementById("modal-title").innerText = term; document.getElementById("modal-body").innerText = "Analyzing..."; modal.style.display = "flex"
     try:
@@ -236,6 +263,7 @@ def main():
     when("click", "#suggest-button")(on_suggest_click)
     when("click", "#profile-button")(on_profile_click)
     when("click", "#kb-search-button")(on_kb_search)
+    when("click", "#download-report-button")(on_download_report_click)
     
     document.getElementById("help-problem-type").addEventListener("click", create_proxy(lambda e: asyncio.ensure_future(on_help_click("Problem Type"))))
     document.getElementById("help-target-column").addEventListener("click", create_proxy(lambda e: asyncio.ensure_future(on_help_click("Target Column"))))

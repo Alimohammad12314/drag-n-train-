@@ -5,11 +5,13 @@ import os
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
+from fastapi.responses import StreamingResponse
 
 from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
 
-# ML & Plotting Libraries
+from fpdf import FPDF
+
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression, Ridge, Lasso, LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
@@ -26,7 +28,6 @@ import matplotlib
 matplotlib.use('Agg')
 import seaborn as sns
 
-# Configure Gemini API
 try:
     genai.configure(api_key=os.environ["GEMINI_API_KEY"])
     gemini_model = genai.GenerativeModel('gemini-1.5-flash')
@@ -38,7 +39,6 @@ except Exception as e:
 explanation_cache = {}
 last_trained_model = {"model": None, "features": []}
 
-# Pydantic Models
 class Visualizations(BaseModel):
     confusion_matrix_plot: Optional[str] = None; actual_vs_predicted_plot: Optional[str] = None
 class FeatureImportance(BaseModel):
@@ -61,12 +61,15 @@ class ProfileResponse(BaseModel):
     profile: Dict[str, Dict[str, Any]]
 class PredictRequest(BaseModel):
     data: Dict[str, Any]
+class ReportRequest(BaseModel):
+    model_name: str
+    metrics: Dict[str, float]
+    summary: str
+    visualizations: Dict[str, Optional[str]]
 
-# FastAPI App Setup
-app = FastAPI(title="Drag n' Train AI API", version="6.0.0")
+app = FastAPI(title="Drag n' Train AI API", version="7.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:8001"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
-# Model Mappings
 REGRESSION_MODELS = { "Linear Regression": LinearRegression, "Ridge": Ridge, "Lasso": Lasso, "Random Forest Regressor": RandomForestRegressor, "XGBoost Regressor": XGBRegressor }
 CLASSIFICATION_MODELS = { "Logistic Regression": LogisticRegression, "Decision Tree Classifier": DecisionTreeClassifier, "K-Nearest Neighbors": KNeighborsClassifier, "Random Forest Classifier": RandomForestClassifier, "XGBoost Classifier": XGBClassifier }
 ALL_MODELS = {**REGRESSION_MODELS, **CLASSIFICATION_MODELS}
@@ -82,24 +85,21 @@ from sklearn.metrics import {evaluation_metric}
 
 # 1. Load your data (replace with your file path)
 # df = pd.read_csv('your_data.csv')
-
 # --- Assuming 'df' is your loaded DataFrame ---
 # 2. Define Features (X) and Target (y)
 features = {features}
 target = '{target_column}'
 X = df[features]
 y = df[target]
-
 # 3. Train the '{model_name}' model
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 model = {model_class_name}()
 model.fit(X_train, y_train)
-
 # 4. Evaluate the model
 predictions = model.predict(X_test)
 score = {evaluation_metric}(y_test, predictions)
 print(f"Model: {model_name}")
-print(f"Score ({evaluation_metric}): {{score:.4f}}")
+print(f"Score ({{score:.4f}})")
 """
 
 @app.get("/models", summary="Get suggested models")
@@ -210,3 +210,26 @@ async def predict(request: PredictRequest):
         return {"prediction": prediction_value}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Could not make a prediction: {e}")
+
+@app.post("/generate_report", summary="Generate a PDF report of the results")
+async def generate_report(request: ReportRequest):
+    try:
+        pdf = FPDF(); pdf.add_page(); pdf.set_font("Helvetica", "B", 16)
+        pdf.cell(0, 10, "Drag n' Train Analysis Report", 0, 1, 'C'); pdf.ln(10)
+        pdf.set_font("Helvetica", "B", 12); pdf.cell(0, 10, f"Model: {request.model_name}", 0, 1); pdf.ln(5)
+        pdf.set_font("Helvetica", "B", 12); pdf.cell(0, 10, "Analysis", 0, 1)
+        pdf.set_font("Helvetica", "", 10); pdf.multi_cell(0, 5, request.summary.encode('latin-1', 'replace').decode('latin-1')); pdf.ln(5)
+        pdf.set_font("Helvetica", "B", 12); pdf.cell(0, 10, "Performance Metrics", 0, 1)
+        pdf.set_font("Helvetica", "", 10); pdf.cell(95, 10, "Metric", 1, 0, 'C'); pdf.cell(95, 10, "Value", 1, 1, 'C')
+        for key, val in request.metrics.items():
+            pdf.cell(95, 10, key.replace('_', ' ').title(), 1, 0); pdf.cell(95, 10, str(val), 1, 1)
+        pdf.ln(10)
+        for name, b64_str in request.visualizations.items():
+            if b64_str:
+                pdf.add_page(); pdf.set_font("Helvetica", "B", 12); pdf.cell(0, 10, name.replace('_', ' ').title(), 0, 1)
+                img_data = base64.b64decode(b64_str); img_file = io.BytesIO(img_data)
+                pdf.image(img_file, x=10, y=None, w=190)
+        pdf_buffer = io.BytesIO(); pdf_buffer.write(pdf.output()); pdf_buffer.seek(0)
+        return StreamingResponse(pdf_buffer, media_type="application/pdf", headers={"Content-Disposition": "attachment;filename=drag_n_train_report.pdf"})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate PDF report: {e}")

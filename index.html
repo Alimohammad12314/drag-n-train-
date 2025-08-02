@@ -39,6 +39,7 @@
     .metrics-header-cell { display: flex; align-items: center; gap: 6px; }
     .result-card tr:last-child td, .result-card tr:last-child th { border-bottom: none; }
     .result-card img { max-width: 100%; border-radius: 6px; margin-top: 10px; }
+    .code-block { white-space: pre-wrap; word-wrap: break-word; background-color: #1f2937; color: #f9fafb; padding: 1rem; border-radius: 8px; font-family: monospace; }
     #status { text-align: center; font-size: 1.2rem; font-weight: 600; margin-top: 2rem; }
     .help-icon { font-size: 0.8em; cursor: pointer; color: var(--muted); border: 1px solid var(--muted); border-radius: 50%; width: 16px; height: 16px; display: inline-flex; justify-content: center; align-items: center; flex-shrink: 0;}
     .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
@@ -50,8 +51,6 @@
     .faq-item:hover { background-color: #e0f2fe; }
     .button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     .knowledge-base-search { display: flex; gap: 10px; margin-top: 1rem; }
-    /* --- NEW: Style for the generated code block --- */
-    .code-block { white-space: pre-wrap; word-wrap: break-word; background-color: #1f2937; color: #f9fafb; padding: 1rem; border-radius: 8px; font-family: monospace; }
   </style>
 </head>
 
@@ -78,6 +77,8 @@
         <label>4. Choose Model</label>
         <select id="model-name" disabled><option>Choose problem type first</option></select>
         <button id="train-button" disabled>Train Model</button>
+        <!-- NEW: Download Report Button -->
+        <button id="download-report-button" style="display:none; margin-top: 1rem; background-color: #be123c;">Download Report</button>
     </div>
     <div id="results">
       <p id="status"></p>
@@ -98,8 +99,9 @@
   </div>
 
   <div id="ai-modal" class="modal"><div class="modal-content"><h2 id="modal-title">Explanation</h2><p id="modal-body">Loading...</p></div></div>
+  <!-- NEW: Hidden link for downloads -->
+  <a id="download-link" style="display: none;"></a>
 
-  <!-- All logic is now in frontend.py -->
   <py-script src="./frontend.py"></py-script>
 
 </body>
