@@ -290,7 +290,7 @@ comparison_results = []
 latest_training_data = None
 # NEW: Re-added for live prediction
 last_trained_model_info = {} 
-BACKEND_URL = "http://localhost:8000"
+BACKEND_URL = "https://drag-n-train.onrender.com"
 FAQ_TERMS = ["Accuracy Score", "R2 Score", "Confusion Matrix", "Feature Importance", "Random Forest", "XGBoost"]
 
 # --- UI Helper Functions ---
