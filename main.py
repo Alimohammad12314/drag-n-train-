@@ -3,6 +3,7 @@ import base64
 import io
 import os
 import zipfile
+import numpy as np # NEW: Import numpy for the calculation
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
@@ -131,8 +132,15 @@ async def train_model(request: TrainRequest):
     def plot_to_base64(fig):
         buf = io.BytesIO(); fig.savefig(buf, format="png", bbox_inches='tight'); buf.seek(0)
         return base64.b64encode(buf.getvalue()).decode('utf-8')
+    
     if request.model_name in REGRESSION_MODELS:
-        metrics["r2_score"] = round(r2_score(y_test, y_pred), 4); metrics["root_mean_squared_error"] = round(mean_squared_error(y_test, y_pred, squared=False), 4); metrics["mean_absolute_error"] = round(mean_absolute_error(y_test, y_pred), 4)
+        mse = mean_squared_error(y_test, y_pred)
+        metrics["r2_score"] = round(r2_score(y_test, y_pred), 4)
+        # --- THE FIX IS HERE ---
+        # Calculate RMSE manually to support all scikit-learn versions
+        metrics["root_mean_squared_error"] = round(np.sqrt(mse), 4)
+        metrics["mean_absolute_error"] = round(mean_absolute_error(y_test, y_pred), 4)
+        
         fig, ax = plt.subplots(); ax.scatter(y_test, y_pred, alpha=0.7); ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], '--r', linewidth=2)
         ax.set_xlabel("Actual Values"); ax.set_ylabel("Predicted Values"); ax.set_title("Actual vs. Predicted")
         visuals["actual_vs_predicted_plot"] = plot_to_base64(fig); plt.close(fig)
@@ -144,14 +152,11 @@ async def train_model(request: TrainRequest):
         ax.set_xlabel('Predicted Labels'); ax.set_ylabel('True Labels'); ax.set_title('Confusion Matrix')
         visuals["confusion_matrix_plot"] = plot_to_base64(fig); plt.close(fig)
     
-    # --- THE FIX IS HERE ---
     if hasattr(model_pipeline.named_steps['model'], 'feature_importances_'):
         ohe_features = []
-        # Check if the one-hot encoder was actually fitted
         if 'cat' in model_pipeline.named_steps['preprocessor'].named_transformers_ and hasattr(model_pipeline.named_steps['preprocessor'].named_transformers_['cat'], 'get_feature_names_out'):
             if model_pipeline.named_steps['preprocessor'].named_transformers_['cat'].n_features_in_ > 0:
                 ohe_features = model_pipeline.named_steps['preprocessor'].named_transformers_['cat'].get_feature_names_out(categorical_features).tolist()
-        
         feature_names = numeric_features.tolist() + ohe_features
         importances = model_pipeline.named_steps['model'].feature_importances_
         feature_importances = [{"feature": f, "importance": round(float(i), 4)} for f, i in sorted(zip(feature_names, importances), key=lambda x: x[1], reverse=True)]
