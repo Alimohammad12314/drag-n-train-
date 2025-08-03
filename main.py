@@ -306,7 +306,7 @@ class ReportRequest(BaseModel):
     visualizations: Dict[str, Optional[str]]
 
 app = FastAPI(title="Drag n' Train AI API", version="8.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:8001"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:8001","https://drag-n-train.vercel.app/"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 REGRESSION_MODELS = { "Linear Regression": LinearRegression, "Ridge": Ridge, "Lasso": Lasso, "Random Forest Regressor": RandomForestRegressor, "XGBoost Regressor": XGBRegressor }
 CLASSIFICATION_MODELS = { "Logistic Regression": LogisticRegression, "Decision Tree Classifier": DecisionTreeClassifier, "K-Nearest Neighbors": KNeighborsClassifier, "Random Forest Classifier": RandomForestClassifier, "XGBoost Classifier": XGBClassifier }
