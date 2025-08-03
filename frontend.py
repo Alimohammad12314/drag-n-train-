@@ -348,7 +348,7 @@ column_names = []
 comparison_results = []
 latest_training_data = None
 last_trained_model_info = {} 
-BACKEND_URL = "http://localhost:8000"
+BACKEND_URL = "https://drag-n-train.onrender.com"
 FAQ_TERMS = ["Accuracy Score", "Classification", "R2 Score", "Confusion Matrix", "Feature Importance", "Random Forest", "Regression", "XGBoost"]
 
 # --- UI Helper Functions ---
