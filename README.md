@@ -43,6 +43,7 @@ Drag n' Train provides an end-to-end workflow, taking a user from a raw CSV file
 *   `📈` **Side-by-Side Model Comparison:** All trained models are added to a clean comparison table, allowing for easy identification of the best-performing model.
 
 #### 3. AI-Powered Insights & Learning
+*   `🧠` **Explainable AI (XAI) Dashboard:** Go beyond *what* the model predicts to understand *why*. Our XAI dashboard uses SHAP and LIME to generate clear plots and **AI-powered summaries** that explain which features are most influential for both the model overall and for individual predictions.
 *   `📄` **Automated Analysis:** Get a simple, layman's summary of your model's performance, written by our AI assistant.
 *   `📚` **Interactive ML Knowledge Base:** An integrated, AI-powered dictionary. Click the `(?)` icon next to any metric or search for any term to get an instant, simple explanation.
 
@@ -50,8 +51,6 @@ Drag n' Train provides an end-to-end workflow, taking a user from a raw CSV file
 *   `🐍` **Python Code Generation:** To celebrate Python, the app automatically generates a clean `scikit-learn` script that perfectly replicates your training process.
 *   `📋` **One-Click PDF Reports:** Download a professional, multi-page PDF report of your entire analysis, complete with plots and the AI summary.
 *   `📦` **Package as API:** With a single click, download a fully deployable FastAPI microservice, complete with a trained model, API endpoints, and a `requirements.txt` file.
-
----
 
 ## Celebrating Python: Our Hybrid Approach & The 80% Rule
 
@@ -76,9 +75,9 @@ By splitting our frontend Python logic into its own `frontend.py` file, we ensur
 
 | Category | Technology |
 | :--- | :--- |
-| **Backend** | Python, FastAPI, Uvicorn, Scikit-learn, XGBoost, Pandas, Matplotlib, Seaborn |
+| **Backend** | Python, FastAPI, Uvicorn, Scikit-learn, XGBoost, Pandas, Matplotlib, Seaborn, shap, lime |
 | **Frontend** | Python, PyScript (Pyodide) |
-| **Cloud & AI** | Render (for backend hosting), Netlify (for frontend hosting), Google Gemini API |
+| **Cloud & AI** | Render (for backend hosting), Vercel (for frontend hosting), Google Gemini API |
 | **Deployment** | Joblib (for model serialization), FPDF2 (for PDF generation) |
 
 ---
