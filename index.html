@@ -13,7 +13,6 @@
     packages = ["pandas"]
   </py-config>
 
-  <!-- FINAL, POLISHED STYLING -->
   <style>
     :root {
       --primary: #3b82f6; --primary-dark: #2563eb; --surface: #1f2937;
@@ -25,7 +24,7 @@
     h2 { border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-top: 2.5rem; }
     h3 { color: var(--primary); }
     label { display: flex; align-items: center; gap: 6px; margin: 1.5rem 0 0.5rem; font-weight: 600; color: var(--muted); }
-    select, button, input[type="text"], textarea { 
+    select, button, input[type="text"], input[type="number"], textarea { 
       padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); 
       width: 100%; font-size: 1rem; background: #374151; color: var(--text); box-sizing: border-box;
     }
@@ -40,7 +39,7 @@
     .drop-zone:hover, .drop-zone--over { background: #374151; border-color: var(--primary); }
     .drop-zone__input { display: none; }
     .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
-    .result-card { background: var(--surface); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); }
+    .result-card { background: var(--surface); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border); }
     .result-card table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
     .result-card th, .result-card td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--border); }
     .metrics-header-cell { display: flex; align-items: center; gap: 6px; }
@@ -66,11 +65,11 @@
 <body>
   <div class="container">
     <h1>Drag n' Train</h1>
-    <!-- NEW: Tagline -->
     <p class="tagline">From Dataset to Decision, Instantly.</p>
     
     <div id="ai-suggestion-card" class="result-card ai-suggestion" style="display:none;"></div>
     <div id="data-profile-card" class="result-card" style="display:none; max-height: 400px; overflow-y: auto;"></div>
+    
     <label>1. Upload CSV File</label>
     <div class="drop-zone" id="drop-zone">
       <span class="drop-zone__prompt" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
@@ -79,14 +78,17 @@
       </span>
       <input type="file" id="file-upload-input" class="drop-zone__input" accept=".csv">
     </div>
+
     <div id="objective-section" style="display:none; margin-top: 1rem;">
       <label for="user-objective">What is your main objective with this data?</label>
       <textarea id="user-objective" placeholder="e.g., 'I want to predict the price' or 'find out which customers might leave'"></textarea>
     </div>
+
     <div class="button-grid" id="action-buttons" style="display:none;">
       <button id="profile-button" style="margin-top: 1rem; background-color: #57534e;">Profile Dataset</button>
       <button id="suggest-button" style="margin-top: 1rem; background-color: #16a34a;">Suggest Model</button>
     </div>
+    
     <div id="controls-section" style="display:none;" class="result-card">
         <label>2. Choose Problem Type <span id="help-problem-type" class="help-icon">?</span></label>
         <select id="problem-type"><option disabled selected value="">-- Select --</option><option value="regression">Regression</option><option value="classification">Classification</option></select>
@@ -99,18 +101,49 @@
             <span>Train Model</span>
         </button>
     </div>
+    
     <div id="results">
       <p id="status"></p>
       <div class="results-grid">
         <div class="results-column" id="results-col-1" style="display: flex; flex-direction: column; gap: 1.5rem;"></div>
         <div class="results-column" id="results-col-2" style="display: flex; flex-direction: column; gap: 1.5rem;"></div>
       </div>
+      
       <div id="comparison-section" class="result-card" style="display:none; margin-top: 1.5rem;"></div>
+
+      <!-- NEW: XAI Dashboard Section -->
+      <div id="xai-dashboard" class="result-card" style="display:none; margin-top: 1.5rem;">
+          <h3>Explainable AI (XAI) Dashboard</h3>
+          <p style="color: var(--muted); font-size: 0.9em; margin-top: -0.5rem; margin-bottom: 1.5rem;">Understand <i>why</i> your model makes certain predictions.</p>
+          
+          <button id="explain-shap-button" style="width:100%; margin-top:0; background-color: #4f46e5;">Global Explanation (SHAP)</button>
+          <p style="font-size: 0.8em; color: var(--muted); margin: 0.5rem 0 1.5rem;">Shows the most important features for the model overall across the entire test set.</p>
+          
+          <hr style="border-color: var(--border); margin: 1.5rem 0;">
+      
+          <div>
+              <label for="lime-instance-index" style="margin-top:0;">Explain a Specific Prediction (LIME)</label>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                  <input type="number" id="lime-instance-index" value="0" min="0" style="width: 120px; padding: 0.5rem;">
+                  <button id="explain-lime-button" style="margin-top: 0; flex-grow: 1; background-color: #4f46e5;">Explain Instance</button>
+              </div>
+              <p style="font-size: 0.8em; color: var(--muted); margin-top: 0.5rem;">Shows which features influenced the prediction for a single data point from the test set.</p>
+          </div>
+      
+          <div id="explanation-plot-container" style="margin-top: 1.5rem; text-align: center;">
+              <p id="explanation-status" style="color: var(--muted);"></p>
+              <img id="explanation-plot-img" style="max-width: 100%; border-radius: 6px; background: white; padding: 5px; display: none;">
+              <p id="explanation-summary" class="ai-summary" style="margin-top: 1rem; text-align: left;"></p>
+          </div>
+      </div>
+      <!-- END: XAI Dashboard Section -->
+
       <div class="button-grid">
           <button id="download-report-button" style="display:none; margin-top: 1rem; background-color: #be123c;">Download Report</button>
           <button id="package-model-button" style="display:none; margin-top: 1rem; background-color: #4338ca;">Package as API</button>
       </div>
     </div>
+    
     <div id="knowledge-base-section">
       <h2>ML Knowledge Base</h2>
       <div class="knowledge-base-search">
@@ -124,7 +157,6 @@
   <div id="ai-modal" class="modal"><div class="modal-content"><h2 id="modal-title">Explanation</h2><p id="modal-body">Loading...</p></div></div>
   <a id="download-link" style="display: none;"></a>
   
-  <!-- NEW: Welcome Modal HTML -->
   <div id="welcome-modal" class="modal">
       <div id="welcome-modal-content" class="modal-content">
           <h2 style="color: var(--primary);">Welcome to Drag n' Train!</h2>

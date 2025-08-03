@@ -8,3 +8,5 @@ fpdf2
 joblib
 matplotlib
 seaborn
+shap
+lime 
