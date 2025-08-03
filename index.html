@@ -21,7 +21,7 @@
     }
     body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
     .container { max-width: 960px; margin: 2rem auto; padding: 2rem; }
-    h1 { text-align: center; font-size: 2.5rem; font-weight: 700; margin-bottom: 2rem; color: white;}
+    h1 { text-align: center; font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; color: white;}
     h2 { border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; margin-top: 2.5rem; }
     h3 { color: var(--primary); }
     label { display: flex; align-items: center; gap: 6px; margin: 1.5rem 0 0.5rem; font-weight: 600; color: var(--muted); }
@@ -58,12 +58,17 @@
     .faq-item:hover { background-color: var(--primary); color: white; }
     .button-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     .knowledge-base-search { display: flex; gap: 10px; margin-top: 1rem; }
+    .tagline { text-align: center; font-size: 1.25rem; color: var(--muted); margin-bottom: 2.5rem; }
+    #welcome-modal-content { text-align: center; }
   </style>
 </head>
 
 <body>
   <div class="container">
     <h1>Drag n' Train</h1>
+    <!-- NEW: Tagline -->
+    <p class="tagline">From Dataset to Decision, Instantly.</p>
+    
     <div id="ai-suggestion-card" class="result-card ai-suggestion" style="display:none;"></div>
     <div id="data-profile-card" class="result-card" style="display:none; max-height: 400px; overflow-y: auto;"></div>
     <label>1. Upload CSV File</label>
@@ -118,6 +123,18 @@
 
   <div id="ai-modal" class="modal"><div class="modal-content"><h2 id="modal-title">Explanation</h2><p id="modal-body">Loading...</p></div></div>
   <a id="download-link" style="display: none;"></a>
+  
+  <!-- NEW: Welcome Modal HTML -->
+  <div id="welcome-modal" class="modal">
+      <div id="welcome-modal-content" class="modal-content">
+          <h2 style="color: var(--primary);">Welcome to Drag n' Train!</h2>
+          <p class="tagline" style="margin-bottom: 1rem;">From Dataset to Decision, Instantly.</p>
+          <p style="color: var(--muted);">
+            This tool is a complete machine learning playground. Just upload a dataset, get suggestions from our AI assistant, and train models to analyze your data—all without writing a single line of code.
+          </p>
+          <button id="close-welcome-button" style="margin-top: 1.5rem;">Get Started</button>
+      </div>
+  </div>
 
   <py-script src="./frontend.py"></py-script>
 

@@ -1,4 +1,3 @@
-
 import asyncio
 import json
 from pyodide.http import pyfetch
@@ -11,7 +10,6 @@ uploaded_data = None
 column_names = []
 comparison_results = []
 latest_training_data = None
-# NEW: Re-added for live prediction
 last_trained_model_info = {} 
 BACKEND_URL = "https://drag-n-train.onrender.com"
 FAQ_TERMS = ["Accuracy Score", "R2 Score", "Confusion Matrix", "Feature Importance", "Random Forest", "XGBoost"]
@@ -59,7 +57,7 @@ async def handle_file_upload(file):
     document.getElementById("ai-suggestion-card").style.display = 'none'
     document.getElementById("data-profile-card").style.display = 'none'
     document.getElementById("download-report-button").style.display = 'none'
-    document.getElementById("package-model-button").style.display = 'none' # Hide new button
+    document.getElementById("package-model-button").style.display = 'none'
     
     try:
         text = await file.text(); df = pd.read_csv(pd.io.common.StringIO(text))
@@ -71,7 +69,7 @@ async def handle_file_upload(file):
             target_select.appendChild(opt)
         target_select.disabled = False
         
-        document.querySelector(".drop-zone__prompt").innerText = "Loaded: " + file.name
+        document.querySelector(".drop-zone__prompt span").innerText = "Loaded: " + file.name
         document.getElementById("objective-section").style.display = 'block'
         document.getElementById("action-buttons").style.display = 'grid'
         document.getElementById("controls-section").style.display = 'block'
@@ -80,6 +78,7 @@ async def handle_file_upload(file):
     finally:
         check_train_button_state()
 
+@when("change", "#problem-type")
 async def on_problem_change(event):
     model_select = document.getElementById("model-name")
     model_select.innerHTML = "<option>Loading...</option>"; model_select.disabled = True
@@ -95,6 +94,7 @@ async def on_problem_change(event):
     finally:
         check_train_button_state()
 
+@when("click", "#train-button")
 async def on_train(event):
     global comparison_results, latest_training_data, last_trained_model_info
     btn = document.getElementById("train-button"); btn.disabled = True
@@ -147,11 +147,12 @@ async def on_train(event):
             pred_card = document.createElement("div"); pred_card.className = "result-card"; pred_card.innerHTML = "<h3>Live Prediction</h3>"
             for feature in data["features"]:
                 label = document.createElement("label"); label.innerText = feature; pred_card.appendChild(label)
-                inp = document.createElement("input"); inp.type = "text"; inp.id = f"pred_inp_{feature}"; inp.placeholder = f"Enter value for {feature}"; pred_card.appendChild(inp)
+                inp = document.createElement("input"); inp.type = "text"; inp.id = f"pred_inp_{feature}"; inp.placeholder = f"Enter value for {feature}"; inp.className = "w-full bg-slate-700 border-slate-600 rounded-md p-2 text-slate-100"
+                pred_card.appendChild(inp)
             pred_btn = document.createElement("button"); pred_btn.innerText = "Predict"; pred_btn.style.marginTop = "1rem"
             pred_btn.addEventListener("click", create_proxy(on_predict_click))
             pred_card.appendChild(pred_btn)
-            pred_result = document.createElement("p"); pred_result.id = "prediction-result"; pred_result.style.fontWeight = "bold"
+            pred_result = document.createElement("p"); pred_result.id = "prediction-result"; pred_result.style.fontWeight = "bold"; pred_result.style.marginTop = "1rem"
             pred_card.appendChild(pred_result)
             col1.appendChild(pred_card)
 
@@ -168,6 +169,7 @@ async def on_train(event):
     finally:
         btn.disabled = False
 
+@when("click", "#download-report-button")
 async def on_download_report_click(event):
     if not latest_training_data: alert("Please train a model first."); return
     btn = event.target; btn.disabled = True; btn.innerText = "Generating PDF..."
@@ -186,6 +188,7 @@ async def on_download_report_click(event):
     finally:
         btn.disabled = False; btn.innerText = "Download Report"
         
+@when("click", "#package-model-button")
 async def on_package_click(event):
     btn = event.target; btn.disabled = True; btn.innerText = "Packaging API..."
     try:
@@ -227,8 +230,16 @@ async def on_help_click(term):
         document.getElementById("modal-body").innerText = data.get("explanation", "Sorry, could not get an explanation.")
     except Exception as e:
         document.getElementById("modal-body").innerText = f"Error: {str(e)}"
-def close_modal(event): document.getElementById("ai-modal").style.display = "none"
 
+@when("click", "#ai-modal")
+def close_ai_modal(event):
+    document.getElementById("ai-modal").style.display = "none"
+
+@when("click", ".modal-content")
+def stop_propagation(event):
+    event.stopPropagation()
+
+@when("click", "#suggest-button")
 async def on_suggest_click(event):
     btn = event.target; btn.disabled = True; btn.innerText = "Analyzing..."
     suggestion_card = document.getElementById("ai-suggestion-card"); suggestion_card.style.display = 'block'; suggestion_card.innerHTML = "<h3>Model Suggestion</h3><p>Analyzing columns...</p>"
@@ -242,6 +253,7 @@ async def on_suggest_click(event):
     finally:
         btn.disabled = False; btn.innerText = "Suggest Model"
 
+@when("click", "#profile-button")
 async def on_profile_click(event):
     btn = event.target; btn.disabled = True; btn.innerText = "Profiling..."
     profile_card = document.getElementById("data-profile-card"); profile_card.style.display = 'block'; profile_card.innerHTML = "<h3>Data Profile</h3><p>Analyzing dataset...</p>"
@@ -264,43 +276,61 @@ async def on_profile_click(event):
     finally:
         btn.disabled = False; btn.innerText = "Profile Dataset"
 
-def on_kb_search():
+@when("click", "#kb-search-button")
+def on_kb_search(event):
     term = document.getElementById("kb-search-input").value
     if term: asyncio.ensure_future(on_help_click(term))
 
-def on_drop_zone_click(event): document.getElementById("file-upload-input").click()
-def prevent_defaults(event): event.preventDefault(); event.stopPropagation()
-def highlight(event): prevent_defaults(event); document.getElementById("drop-zone").classList.add("drop-zone--over")
-def unhighlight(event): prevent_defaults(event); document.getElementById("drop-zone").classList.remove("drop-zone--over")
-async def on_file_drop(event): unhighlight(event); prevent_defaults(event); await handle_file_upload(event.dataTransfer.files.item(0))
-async def on_file_select(event): await handle_file_upload(event.target.files.item(0))
-    
-def main():
-    drop_zone = document.getElementById("drop-zone"); file_input = document.getElementById("file-upload-input")
-    drop_zone.addEventListener("click", create_proxy(on_drop_zone_click))
-    for ev in ["dragenter", "dragover"]: drop_zone.addEventListener(ev, create_proxy(highlight))
-    for ev in ["dragleave", "dragend"]: drop_zone.addEventListener(ev, create_proxy(unhighlight))
-    drop_zone.addEventListener("drop", create_proxy(on_file_drop))
-    document.getElementById("ai-modal").addEventListener("click", create_proxy(close_modal))
-    document.querySelector(".modal-content").addEventListener("click", create_proxy(lambda e: e.stopPropagation()))
-    
-    when("change", "#file-upload-input")(on_file_select)
-    when("change", "#problem-type")(on_problem_change)
-    when("click", "#train-button")(on_train)
-    when("click", "#suggest-button")(on_suggest_click)
-    when("click", "#profile-button")(on_profile_click)
-    when("click", "#kb-search-button")(on_kb_search)
-    when("click", "#download-report-button")(on_download_report_click)
-    # --- NEW: Bind the package model button ---
-    when("click", "#package-model-button")(on_package_click)
-    
-    document.getElementById("help-problem-type").addEventListener("click", create_proxy(lambda e: asyncio.ensure_future(on_help_click("Problem Type"))))
-    document.getElementById("help-target-column").addEventListener("click", create_proxy(lambda e: asyncio.ensure_future(on_help_click("Target Column"))))
-    
-    faq_grid = document.getElementById("faq-grid")
-    for term in FAQ_TERMS:
-        item = document.createElement("div"); item.className = "faq-item"; item.innerText = term
-        item.addEventListener("click", create_proxy(lambda e, t=term: asyncio.ensure_future(on_help_click(t))))
-        faq_grid.appendChild(item)
+@when("change", "#file-upload-input")
+async def on_file_select(event):
+    if event.target.files.length > 0: await handle_file_upload(event.target.files.item(0))
 
-main()
+def prevent_defaults(event): event.preventDefault(); event.stopPropagation()
+
+@when("dragenter", "#drop-zone")
+@when("dragover", "#drop-zone")
+def highlight(event):
+    prevent_defaults(event)
+    document.getElementById("drop-zone").classList.add("drop-zone--over")
+
+@when("dragleave", "#drop-zone")
+@when("dragend", "#drop-zone")
+def unhighlight(event):
+    prevent_defaults(event)
+    document.getElementById("drop-zone").classList.remove("drop-zone--over")
+
+@when("drop", "#drop-zone")
+async def on_file_drop(event):
+    unhighlight(event); prevent_defaults(event)
+    if event.dataTransfer.files.length > 0: await handle_file_upload(event.dataTransfer.files.item(0))
+
+@when("click", "#drop-zone")
+def on_drop_zone_click(event):
+    document.getElementById("file-upload-input").click()
+
+@when("click", "#help-problem-type")
+def on_help_problem_click(event):
+    asyncio.ensure_future(on_help_click("Problem Type"))
+
+@when("click", "#help-target-column")
+def on_help_target_click(event):
+    asyncio.ensure_future(on_help_click("Target Column"))
+
+# --- NEW: Welcome Modal Logic ---
+@when("click", "#close-welcome-button")
+def close_welcome_modal(event):
+    document.getElementById("welcome-modal").style.display = "none"
+
+@when("click", "#welcome-modal")
+def close_welcome_modal_bg(event):
+    document.getElementById("welcome-modal").style.display = "none"
+
+# Build FAQ items dynamically
+faq_grid = document.getElementById("faq-grid")
+for term in FAQ_TERMS:
+    item = document.createElement("div"); item.className = "faq-item"; item.innerText = term
+    item.addEventListener("click", create_proxy(lambda e, t=term: asyncio.ensure_future(on_help_click(t))))
+    faq_grid.appendChild(item)
+
+# Show the welcome modal on startup
+document.getElementById("welcome-modal").style.display = "flex"
